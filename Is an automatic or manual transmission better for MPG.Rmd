@@ -1,0 +1,148 @@
+---
+title: "Is an automatic or manual transmission better for MPG?"
+author:
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 4
+geometry: margin=0.6in
+---
+
+```{r echo=FALSE}
+library(ggplot2)
+library(plyr)
+library(lattice)
+library(MASS)
+library(car)
+library(caret)
+library(grid)
+```
+
+### Executive summary  
+To answer the stated question exactly we should collect MPG values 
+from all existing brands (total population). With the help of regression 
+analysis and a sample, we can answer this question approximately, while quantifying uncertainty
+in our prediction. A simple regression of MPG against transmission type shows that 
+**manual transmission better for MPG by 7.25 miles per gallon on average**.
+Adding more variables increases model's ability to predict MPG of a car.  
+
+### Exploratory analysis  
+
+Let's explore data visually by plotting MPG separately for two groups of cars: with automatic
+and manual transmission (see Appendix, Figure 1: MPG vs transmission type).
+The cursory visual analysis does suggest that there is a difference in MPG due to
+transmission type. Let's validate this conjecture by regression analysis.  
+
+### Regression analysis 1.  
+
+Let's perform an Ordinary Least Squares (OLS) regression of MPG ("mpg") on transmission type ("am").
+It should be noted that although MPG is a continuous variable, transmission type is
+categorical one that can take on two states: "automatic" or "manual". To perform
+OLS I am treating "am" as dummy variable that can take on two values: "0" for "automatic" and "1" for manual (factorization explicit or implicit also possible). Summary of resulting regression model:
+
+```{r echo=FALSE}
+ls1 <- lm(mpg~am, data=mtcars)
+summary(ls1)
+```
+
+### Regression 1: Coefficient interpretation  
+
+- Intercept is mean MPG for automatic transmission (set am=0 and get average
+MPG for automatic transmission).
+- `am` coefficient is incremental increase in MPG due to switch to manual transmission. In other words, **this is MPG difference between automatic and manual transmissions**. As before, if you set `am=1`, you will get mean MPG for cars with manual transmission. You can check these statements by comparing coefficients to calculated means:
+```{r}
+ddply(mtcars, "am", function(x) mean(x$mpg))
+```
+Both coefficients -- `(Intercept)` and `am` -- are statistically significant as 
+evidenced by low p-values, i.e. mean MPG for automatic transmission significantly different
+from 0; and mean MPG for manual transmission significantly different from mean for automatic transmission (in other words, both have predictive values).  
+
+### Regression 1: Quantifying model uncertainty and regression diagnostics  
+
+Predicted average MPG for automatic and manual transmission with 95% Confidence intervals are:
+```{r}
+cbind(am = c(0,1), rbind(predict(ls1, newdata=data.frame(am=0), interval = "confidence"),
+                         predict(ls1, newdata=data.frame(am=1), interval = "confidence")))
+```
+
+
+
+Normality of residuals distribution is not a problem here, as evidenced by 
+Q-Q plot (see Appendix, Figure 2: Residuals Q-Q plot for Regression 1). The two
+real problems are:  
+- low explanatory ability of the model (adjusted $R^2 = 0.3385$)  
+- patterns in residuals distributions. See Appendix, Figure 3: Patterns in residual distribution by transmission type and additional variable, as an example of one pattern: heavier cars tend to have
+negative residuals (MPG overprediction).
+
+### Regression analysis 2: Adding more explanatory variables  
+
+There are two paths to adding more explanatory variables:  
+- **Manual**. First add to regression model all predictors that visually have linear
+relationships to MPG (see Appendix, Plot 3, for visualization of
+relationships between MPG and predictors), and then remove by hand
+insignificant ones, starting with least significant, unless only
+significant predictors are left in the model.  
+- **Automatic**. Let `stepAIC()` function from `MASS` package choose the "best" regression
+model for you ( as the name of the function suggests, this is done via minimizing Akaike information criterion).
+As it turns out in this particular case, both approaches end up in identical model:
+
+```{r echo=FALSE}
+lsTotal <- lm(mpg~., data=mtcars)
+ls2 <- stepAIC(lsTotal, trace=F)
+summary(ls2)
+```
+
+### Regression 2: interpretation, diagnostics, and comparison to Regression 1  
+
+- All predictors, except intercept, are significant
+- 1 sec increase in `qsec` ("1/4 mile time") will increase MPG by 1.23 while all other variables kept constant; 1000lb increase in weight will decrease MPG by 3.92; and manual transmission cars will have 2.94 Miles per gallon higher MPG on average over those with automatic 
+transmission.
+- Regression 2 has higher predictive ability as measured by adjusted $R^2$: 0.8336 vs 0.3385
+- We are 95% confident that residuals are normal (see Appendix, Figure 5: Residuals Q-Q plot for Regression 2)
+- Plot of residuals against regression components still reveals some heterescedasticity (see Appendix, Figure 6: Component + Residual Plots for Regression 2)
+
+# Appendix
+```{r fig.width=4, fig.height=3.8, echo=FALSE, fig.cap="MPG vs transmission type", }
+data(mtcars)
+ggplot(data=mtcars, aes(x=factor(am), y=mpg)) +
+        geom_boxplot(aes(group=factor(am), color=factor(am))) +
+        labs(x="transmission type", y = "MPG, miles/(US) gallon") +
+        theme(axis.title.x = element_text(size=9),
+              axis.title.y = element_text(size=9)) +
+        scale_color_discrete(name="transmission type",
+                             labels=c("0 - Automatic", "1 - Manual"))
+```
+
+
+
+```{r echo=FALSE, fig.cap="Residuals Q-Q plot for Regression 1"}
+qqPlot(ls1$resid)
+
+```
+
+```{r echo=FALSE, fig.cap="Patterns in residual distribution by transmission type and additional variable"}
+ggplot(data=NULL, aes(x=factor(mtcars$am), y=resid(ls1))) +
+        geom_violin(aes(color=factor(mtcars$am))) +
+        geom_point(aes(fill=mtcars$wt), shape=21, size=2) +
+      labs(x="transmission type", y = "MPG residuals") +
+        theme(axis.title.x = element_text(size=9),
+              axis.title.y = element_text(size=9)) +
+        scale_color_discrete(name="transmission type",
+                             labels=c("0 - Automatic", "1 - Manual")) +
+        scale_fill_continuous(name="Car weight")
+```
+
+
+```{r echo=FALSE, fig.cap = "Feature plot: MPG vs all predictors", fig.width=5, fig.height=5}
+featurePlot(x=mtcars[,!(names(mtcars) == "mpg")], y=mtcars[,"mpg"])
+```
+
+
+```{r echo=FALSE, fig.cap="Residuals Q-Q plot for Regression 2"}
+qqPlot(ls2$resid)
+```
+
+```{r echo=FALSE, fig.cap="Component + Residual Plots for Regression 2", warning=FALSE, fig.height=5, fig.width=5}
+crPlots(ls2)
+```

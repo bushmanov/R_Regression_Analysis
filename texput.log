@@ -1,0 +1,13 @@
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=pdfetex 2013.9.15)  23 AUG 2014 09:54
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**\nonstopmode \catcode126=12 \def\normaltilde{~}\catcode126=13 \let~\normaltil
+de  \input ./Is an automatic or manual transmission better for MPG.txt
+
+! Emergency stop.
+<*> ...tcode126=13 \let~\normaltilde  \input ./Is 
+                                                  an automatic or manual tra...
+*** (job aborted, file error in nonstop mode)
+
+!  ==> Fatal error occurred, no output PDF file produced!

@@ -1,0 +1,97 @@
+---
+title: "MPG"
+author: "Sergey Bushmanov"
+date: "08/23/2014"
+output: html_document
+---
+
+```{r echo=FALSE}
+library(knitr)
+library(ggplot2)
+library(plyr)
+knitr::opts_chunk$set(
+  warning=FALSE,
+  message=FALSE,
+  echo=FALSE,
+  dpi=600,
+  fig.width=3,
+  fig.height=3,
+  dev="png",
+  dev.args=list(type="cairo"),
+  error=FALSE
+)
+```
+
+
+
+
+### Executive summary
+To answer the stated question we
+should go out and collect MPG measures on all brands existing, i.e. total population. 
+However, with the help of regression analysis we can answer this question approximately,
+with a stated precision, by analyzing a sample. The results obtained by analizing
+`mtcars` sample in R show that automobiles with automatic transmission appear to deliver much
+less MPG. On average, given sample at hand and developed regression model, autos with automatic
+transmission have x MPG with 95% CI wrapping this average at ... values, and autos
+with manual transmission have y MPG with 95% CI. Predicted 95% ranges are ... 
+and ... respectively. However, this simple regression model with single predictor
+is not very efficient in predicting MPG and an alternative linear model is shown.
+
+### Exploratory analysis
+Let's explore data visually by plotting MPG for two groups of cars: with automatic
+and manual transmission.
+```{r fig.width=4}
+data(mtcars)
+ggplot(data=mtcars, aes(x=factor(am), y=mpg)) +
+        geom_boxplot(aes(group=factor(am), color=factor(am))) +
+        labs(x="Type of transmission", y = "MPG, miles/(US) gallon") +
+        theme(axis.title.x = element_text(size=9), axis.title.y = element_text(size=9)) +
+        scale_color_discrete(name="Type of transmission",
+                             labels=c("0 - Automatic", "1 - Manual"))
+```
+
+This cursory visual analysis does suggests that there is difference in MPG due to
+type of transmission. Let's validate this conjecture with regression analysis.
+
+### Regression analysis 1.
+Let's try an ordinary least squares (OLS) regression of MPG ("mpg") on type of transmission ("am").
+It should be noted that although MPG is continuos variable, type of transmission is
+categorical that can take on two states: either "automatic" or "manual". To perform
+OLS I am treating "am" as dummy variable: 0 for "automatic" and "1" for manual (explicit factorization also possible).
+
+```{r echo=TRUE}
+ls1 <- lm(mpg~am, data=mtcars)
+summary(ls1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Executive summary
+
+1. Boxplot of MPG on two states of am and exploratory data analysis:  
+- mean and median, CI, summary by transmission type.
+
+2. Fitting LS linear regreeion: preliminary diagnostics, interpretation of coeff
+icients and residual plot. ggplot with additional dimensions, caret::featurePlot
+
+3. Alternative models. Comparison among models.
+
+4. Uncertainty in the best-fit model.
